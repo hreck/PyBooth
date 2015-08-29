@@ -11,12 +11,20 @@ from watchdog.events import PatternMatchingEventHandler
 from subprocess import Popen
 from pygame.locals import *
 
+## global photo_event
+## global countdownimgs
+## global startimg
+## global flashimg
+
+
 last_image = None
 new_image = False
 
 startimg = None
 countdownimgs = []
 flashimg = None
+
+gphoto_command = ['gphoto2','--capture-image-and-download', '--filename', '%Y%m%d%H%M%S.jpg']
 
 photo_event = pygame.USEREVENT + 1
 
@@ -36,21 +44,53 @@ class Button:
             text = font.render(self.caption,0,pygame.Color('BLACK'))
             textpos = text.get_rect(center=self.rect.center)
             surface.blit(text,textpos)
+
+class MyHandler(PatternMatchingEventHandler):
+    patterns=["*.jpg", "*.JPG"]
+
+    def process(self, event):
+        """
+        event.event_type
+            'modified' | 'created' | 'moved' | 'deleted'
+        event.is_directory
+            True | False
+        event.src_path
+            path/to/observed/file
+        """
+
+        print "got something"
+        print event.src_path, event.event_type
+        global last_image
+        global new_image
+        print "loading image"
+        last_image = aspect_scale(get_image(event.src_path), (x,y)).convert()
+        new_image = True
+        print "done loading"
+
+    
+    def on_created(self, event):
+        self.process(event)
+
+    def on_modified(self, event):
+        self.process(event)
+
+
         
 def load_resources():
+    print "loading ressources"    
+    global startimg
+    global flashimg
+    global countdownimgs
     base_path = './gfx/'
-    startimg = pygame.image.load(base_path + 'start.png')
-    countdownimgs.append(pygame.image.load(base_path + '10.png'))
-    countdownimgs.append(pygame.image.load(base_path + '9.png'))
-    countdownimgs.append(pygame.image.load(base_path + '8.png'))
-    countdownimgs.append(pygame.image.load(base_path + '7.png'))
-    countdownimgs.append(pygame.image.load(base_path + '6.png'))
-    countdownimgs.append(pygame.image.load(base_path + '5.png'))
-    countdownimgs.append(pygame.image.load(base_path + '4.png'))
-    countdownimgs.append(pygame.image.load(base_path + '3.png'))
-    countdownimgs.append(pygame.image.load(base_path + '2.png'))
-    countdownimgs.append(pygame.image.load(base_path + '1.png'))
-    flashimg = pygame.image.load(base_path + 'flash.png')
+    
+    startimg = aspect_scale(pygame.image.load(base_path + 'start.png'),(x,y))
+    countdownimgs.append(aspect_scale(pygame.image.load(base_path + '5.png'),(x,y)))
+    countdownimgs.append(aspect_scale(pygame.image.load(base_path + '4.png'),(x,y)))
+    countdownimgs.append(aspect_scale(pygame.image.load(base_path + '3.png'),(x,y)))
+    countdownimgs.append(aspect_scale(pygame.image.load(base_path + '2.png'),(x,y)))
+    countdownimgs.append(aspect_scale(pygame.image.load(base_path + '1.png'),(x,y)))
+    flashimg = aspect_scale(pygame.image.load(base_path + 'flash.png'),(x,y))
+    print "done loading"
 
 def draw_buttons(surface, sw, sh):
     color = pygame.Color('#ee4000')
@@ -100,37 +140,12 @@ def aspect_scale(img,(bx,by)):
 
     return pygame.transform.scale(img, (sx,sy))
     
-
-
-class MyHandler(PatternMatchingEventHandler):
-    patterns=["*.jpg", "*.JPG"]
-
-    def process(self, event):
-        """
-        event.event_type
-            'modified' | 'created' | 'moved' | 'deleted'
-        event.is_directory
-            True | False
-        event.src_path
-            path/to/observed/file
-        """
-
-        print "got something"
-        print event.src_path, event.event_type
-        global last_image
-        global new_image
-        print "loading image"
-        last_image = aspect_scale(get_image(event.src_path), (x,y)).convert()
-        new_image = True
-        print "done loading"
-
-    
-    def on_created(self, event):
-        self.process(event)
-
-    def on_modified(self, event):
-        self.process(event)
-
+def end_script():
+        print "exit"
+        global done        
+        done = True
+        observer.stop()
+        observer.join()
 
 
 if __name__ == '__main__':
@@ -146,6 +161,8 @@ if __name__ == '__main__':
     y = args.height
     path = args.path
     fullscreen = args.fullscreen
+    
+    
     
     load_resources()    
     
@@ -163,22 +180,14 @@ if __name__ == '__main__':
     done = False
     clock = pygame.time.Clock()
 
-    def end_script():
-        print "exit"
-        global done        
-        done = True
-        observer.stop()
-        observer.join()
+    
    
    
    
     
     first_run=True
     cnt_id = 0
-    #global photo_event
-    #global countdownimgs
-    #global startimg
-    #global flashimg
+    
 
     while not done:
         for event in pygame.event.get():
@@ -194,19 +203,24 @@ if __name__ == '__main__':
                     #sub = Popen(['gphoto2','--capture-image-and-download'])
             
                 if event.type == photo_event:
-                    screen.blit(countdownimgs[cnt_id], (0, 0))                    
-                    if (cnt_id >=10):
+                                        
+                    if (cnt_id >=5):
                         screen.blit(flashimg, (0, 0))
                         cnt_id = 0
                         pygame.time.set_timer(photo_event, 0)
-                    cnt_id = cnt_id + 1
+                        sub = Popen(gphoto_command)
+                    else:
+                        screen.blit(countdownimgs[cnt_id], (0, 0))
+                        cnt_id = cnt_id + 1
                     pygame.display.flip()
                     
         
         
         if(last_image and new_image):
             print "blitting image"
-            screen.blit(last_image, (0, 0))
+            left = (screen.get_width() - last_image.get_width()) / 2
+            top = (screen.get_height() - last_image.get_height()) / 2
+            screen.blit(last_image, (left, top))
             new_image = False
             print "done blitting"
             draw_buttons(screen, x, y)
@@ -219,7 +233,5 @@ if __name__ == '__main__':
             draw_buttons(screen, x, y)
             pygame.display.flip()
         
-        clock.tick(60)   
-
-
-    
+        clock.tick(60)  
+   
