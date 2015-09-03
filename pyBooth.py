@@ -40,7 +40,7 @@ class Button:
     def draw(self, surface):
         surface.fill(self.color, rect=self.rect)
         if (pygame.font):
-            font = pygame.font.Font(None, self.fsize)
+            font = pygame.font.Font('fkfont.ttf', self.fsize)
             text = font.render(self.caption,0,pygame.Color('BLACK'))
             textpos = text.get_rect(center=self.rect.center)
             surface.blit(text,textpos)
@@ -81,15 +81,20 @@ def load_resources():
     global startimg
     global flashimg
     global countdownimgs
+    global bgimg
+    global cntfont
     base_path = './gfx/'
     
     startimg = aspect_scale(pygame.image.load(base_path + 'start.png'),(x,y))
+    bgimg = aspect_scale(pygame.image.load(base_path + 'BG.png'),(x,y))
     countdownimgs.append(aspect_scale(pygame.image.load(base_path + '5.png'),(x,y)))
     countdownimgs.append(aspect_scale(pygame.image.load(base_path + '4.png'),(x,y)))
     countdownimgs.append(aspect_scale(pygame.image.load(base_path + '3.png'),(x,y)))
     countdownimgs.append(aspect_scale(pygame.image.load(base_path + '2.png'),(x,y)))
     countdownimgs.append(aspect_scale(pygame.image.load(base_path + '1.png'),(x,y)))
     flashimg = aspect_scale(pygame.image.load(base_path + 'flash.png'),(x,y))
+    cntfont = pygame.font.Font('fkfont.ttf', y/2)
+    
     print "done loading"
 
 def draw_buttons(surface, sw, sh):
@@ -153,15 +158,16 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--width", type=int, help="screen width", default=1024)
-    parser.add_argument("--height", type=int, help="screen height", default=768)
+    parser.add_argument("--height", type=int, help="screen height", default=600)
     parser.add_argument("--path", help="path to observe", default=".")
     parser.add_argument("--fullscreen", "-f", action='store_true', help="run in fullscreen")
+    parser.add_argument("--delay", "-d", type=int, help="delay before picture is taken", default=5)
     args = parser.parse_args()
     x = args.width
     y = args.height
     path = args.path
     fullscreen = args.fullscreen
-    
+    delay = args.delay
     
     
     load_resources()    
@@ -186,7 +192,7 @@ if __name__ == '__main__':
    
     
     first_run=True
-    cnt_id = 0
+    cnt = 5
     
 
     while not done:
@@ -204,14 +210,17 @@ if __name__ == '__main__':
             
                 if event.type == photo_event:
                                         
-                    if (cnt_id >=5):
+                    if (cnt <=0):
                         screen.blit(flashimg, (0, 0))
-                        cnt_id = 0
+                        cnt = 5
                         pygame.time.set_timer(photo_event, 0)
                         sub = Popen(gphoto_command)
                     else:
-                        screen.blit(countdownimgs[cnt_id], (0, 0))
-                        cnt_id = cnt_id + 1
+                        screen.blit(bgimage, (0, 0))
+                        text = cntfont.render(cnt,0,pygame.Color('BLACK'))
+                        textpos = text.get_rect(center=screen.rect.center)
+                        screen.blit(text,textpos)
+                        cnt = cnt - 1
                     pygame.display.flip()
                     
         
