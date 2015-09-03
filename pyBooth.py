@@ -153,6 +153,15 @@ def end_script():
         observer.join()
 
 
+def display_count():
+    global cnt
+    global screen
+    screen.blit(bgimg, (0, 0))
+    text = cntfont.render(str(cnt),0,pygame.Color('WHITE'))
+    textpos = text.get_rect(center=screen.get_rect().center)
+    screen.blit(text,textpos)
+    cnt = cnt - 1
+
 if __name__ == '__main__':
     args = sys.argv[1:]
 
@@ -170,13 +179,14 @@ if __name__ == '__main__':
     delay = args.delay
     
     
-    load_resources()    
+        
     
     observer = Observer()
     observer.schedule(MyHandler(), path)
     observer.start()   
 
     pygame.init()
+    load_resources()
     if(fullscreen):
         screen = pygame.display.set_mode((x, y), FULLSCREEN)
     else:
@@ -202,8 +212,7 @@ if __name__ == '__main__':
                 if event.type == KEYDOWN and event.key == K_ESCAPE: 
                     end_script()
                 if event.type == KEYDOWN and event.key == K_SPACE:
-                    screen.blit(countdownimgs[cnt_id], (0, 0))
-                    cnt_id = cnt_id + 1
+                    display_count()
                     pygame.time.set_timer(photo_event, 1000)
                     pygame.display.flip()
                     #sub = Popen(['gphoto2','--capture-image-and-download'])
@@ -211,16 +220,15 @@ if __name__ == '__main__':
                 if event.type == photo_event:
                                         
                     if (cnt <=0):
-                        screen.blit(flashimg, (0, 0))
+                        screen.blit(bgimg, (0, 0))
+                        text = cntfont.render('CHEESE!!',0,pygame.Color('WHITE'))
+                        textpos = text.get_rect(center=screen.get_rect().center)
+                        screen.blit(text,textpos)
                         cnt = 5
                         pygame.time.set_timer(photo_event, 0)
                         sub = Popen(gphoto_command)
                     else:
-                        screen.blit(bgimage, (0, 0))
-                        text = cntfont.render(cnt,0,pygame.Color('BLACK'))
-                        textpos = text.get_rect(center=screen.rect.center)
-                        screen.blit(text,textpos)
-                        cnt = cnt - 1
+                        display_count()
                     pygame.display.flip()
                     
         
